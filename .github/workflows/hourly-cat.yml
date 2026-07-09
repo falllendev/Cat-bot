@@ -15,3 +15,4 @@ jobs:
       - run: node send_cat.js
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
