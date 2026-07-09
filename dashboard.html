@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cat-bot Dashboard</title>
+<style>
+  :root {
+    --cream: #FBF7F0;
+    --ink: #2B2420;
+    --clay: #C4623E;
+    --moss: #6B7A5E;
+    --paper: #FFFFFF;
+    --line: #E8E0D3;
+    --muted: #8A8073;
+    --amber: #D8A144;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    line-height: 1.5;
+  }
+  header {
+    padding: 48px 32px 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  header h1 .paw { font-size: 0.55em; color: var(--clay); }
+  header p {
+    margin: 0;
+    color: var(--muted);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.95rem;
+  }
+  main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 32px;
+    display: grid;
+    gap: 28px;
+  }
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+  }
+  .card h2 {
+    font-size: 1.3rem;
+    margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card .sub {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin: 0 0 20px;
+  }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  label {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+  input[type=text], input[type=password], textarea {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: var(--cream);
+    color: var(--ink);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  button {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 11px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s ease, opacity 0.15s ease;
+  }
+  button:active { transform: scale(0.97); }
+  button.primary { background: var(--clay); color: white; }
+  button.primary:hover { opacity: 0.9; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+  button.ghost:hover { background: var(--cream); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .field { margin-bottom: 16px; }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .gallery img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    display: block;
+  }
+  .stat-row {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .stat .num {
+    font-family: 'Iowan Old Style', Georgia, serif;
+    font-size: 2rem;
+    color: var(--clay);
+    line-height: 1;
+  }
+  .stat .label {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .history-list {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.88rem;
+    max-height: 240px;
+    overflow-y: auto;
+    border-top: 1px solid var(--line);
+  }
+  .history-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+  }
+  .history-item .when { color: var(--muted); }
+  .badge {
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.72rem;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--moss);
+    color: white;
+    font-weight: 600;
+  }
+  .status-msg {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+  }
+  .status-msg.ok { background: #EBF1E6; color: var(--moss); }
+  .status-msg.err { background: #F7E7E2; color: var(--clay); }
+  .token-note {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+  .loading { color: var(--muted); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="paw">🐾</span> Cat-bot Dashboard</h1>
+  <p>falllendev / Cat-bot &mdash; runs on GitHub Actions, posts to Discord</p>
+</header>
+
+<main>
+
+  <div class="card">
+    <h2>Access token</h2>
+    <p class="sub">Needed only for posting now or saving settings below. Stored just in this browser, never sent anywhere but GitHub.</p>
+    <div class="field">
+      <label for="token">Personal access token</label>
+      <input type="password" id="token" placeholder="ghp_..." />
+    </div>
+    <button class="ghost" id="saveTokenBtn">Save in this browser</button>
+    <div class="token-note" id="tokenStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>Post now</h2>
+    <p class="sub">Triggers the same workflow that runs every hour.</p>
+    <button class="primary" id="triggerBtn">Post a cat photo now</button>
+    <div id="triggerStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>Message settings</h2>
+    <p class="sub">Edits <code>config.json</code> in the repo. The next post will use these.</p>
+    <div class="field">
+      <label for="roleId">Role ID to ping (leave blank for none)</label>
+      <input type="text" id="roleId" placeholder="e.g. 1524870577527980232" />
+    </div>
+    <div class="field">
+      <label for="msgText">Message text</label>
+      <textarea id="msgText" placeholder="Hourly cat photo is here"></textarea>
+    </div>
+    <button class="primary" id="saveConfigBtn">Save settings</button>
+    <div id="configStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>History &amp; stats</h2>
+    <p class="sub">Pulled from <code>history.json</code>, updated after every post.</p>
+    <div class="stat-row" id="statRow"><div class="loading">Loading...</div></div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <div class="card">
+    <h2>Photo gallery</h2>
+    <p class="sub" id="gallerySub">Every image currently in the repo.</p>
+    <div class="gallery" id="gallery"><div class="loading">Loading photos...</div></div>
+  </div>
+
+</main>
+
+<script>
+const OWNER = "falllendev";
+const REPO = "Cat-bot";
+const WORKFLOW_FILE = "hourly-cat.yml";
+const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
+const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/main`;
+
+function getToken() { return localStorage.getItem("catbot_token") || ""; }
+
+function ghHeaders(withAuth) {
+  const h = { "Accept": "application/vnd.github+json" };
+  if (withAuth) {
+    const t = getToken();
+    if (t) h["Authorization"] = "Bearer " + t;
+  }
+  return h;
+}
+
+// ---- Token ----
+document.getElementById("token").value = getToken();
+document.getElementById("saveTokenBtn").addEventListener("click", () => {
+  const val = document.getElementById("token").value.trim();
+  localStorage.setItem("catbot_token", val);
+  const el = document.getElementById("tokenStatus");
+  el.textContent = val ? "Token saved in this browser." : "Token cleared.";
+});
+
+// ---- Gallery ----
+async function loadGallery() {
+  const el = document.getElementById("gallery");
+  try {
+    const res = await fetch(`${API}/contents/`);
+    const files = await res.json();
+    const images = files.filter(f => /\.(jpe?g|png|gif)$/i.test(f.name));
+    document.getElementById("gallerySub").textContent = `${images.length} photo${images.length === 1 ? "" : "s"} currently in the pool.`;
+    if (images.length === 0) {
+      el.innerHTML = '<div class="loading">No photos found yet.</div>';
+      return;
+    }
+    el.innerHTML = images.map(f =>
+      `<img src="${RAW}/${encodeURIComponent(f.name)}" loading="lazy" alt="${f.name}" title="${f.name}" />`
+    ).join("");
+  } catch (e) {
+    el.innerHTML = '<div class="loading">Could not load photos.</div>';
+  }
+}
+
+// ---- History & stats ----
+async function loadHistory() {
+  const statRow = document.getElementById("statRow");
+  const listEl = document.getElementById("historyList");
+  try {
+    const res = await fetch(`${RAW}/history.json?cachebust=${Date.now()}`);
+    if (!res.ok) throw new Error("no history yet");
+    const history = await res.json();
+
+    const total = history.length;
+    const counts = {};
+    history.forEach(h => { counts[h.photo] = (counts[h.photo] || 0) + 1; });
+    let favPhoto = "-", favCount = 0;
+    Object.entries(counts).forEach(([name, c]) => { if (c > favCount) { favCount = c; favPhoto = name; } });
+    const last = history[0];
+    const lastWhen = last ? new Date(last.timestamp).toLocaleString() : "-";
+
+    statRow.innerHTML = `
+      <div class="stat"><div class="num">${total}</div><div class="label">Total posts</div></div>
+      <div class="stat"><div class="num">${favCount}</div><div class="label">Most-posted photo</div></div>
+      <div class="stat"><div class="num" style="font-size:1.1rem">${lastWhen}</div><div class="label">Last posted</div></div>
+    `;
+
+    listEl.innerHTML = history.slice(0, 30).map(h => {
+      const when = new Date(h.timestamp).toLocaleString();
+      return `<div class="history-item"><span>${h.photo}</span><span class="when">${when}</span></div>`;
+    }).join("") || '<div class="loading">No posts logged yet.</div>';
+  } catch (e) {
+    statRow.innerHTML = '<div class="loading">No history yet &mdash; it appears after the first post.</div>';
+    listEl.innerHTML = "";
+  }
+}
+
+// ---- Config ----
+async function loadConfig() {
+  try {
+    const res = await fetch(`${RAW}/config.json?cachebust=${Date.now()}`);
+    if (!res.ok) throw new Error("no config yet");
+    const cfg = await res.json();
+    document.getElementById("roleId").value = cfg.roleId || "";
+    document.getElementById("msgText").value = cfg.message || "";
+  } catch (e) {
+    document.getElementById("msgText").value = "Hourly cat photo is here";
+  }
+}
+
+document.getElementById("saveConfigBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("configStatus");
+  const token = getToken();
+  if (!token) {
+    statusEl.innerHTML = '<div class="status-msg err">Save your access token above first.</div>';
+    return;
+  }
+  const roleId = document.getElementById("roleId").value.trim();
+  const message = document.getElementById("msgText").value.trim() || "Hourly cat photo is here";
+  const newContent = JSON.stringify({ roleId, message }, null, 2);
+
+  statusEl.innerHTML = '<div class="loading">Saving...</div>';
+  try {
+    // Need the current file's sha to update it
+    let sha = undefined;
+    const getRes = await fetch(`${API}/contents/config.json`, { headers: ghHeaders(true) });
+    if (getRes.ok) {
+      const data = await getRes.json();
+      sha = data.sha;
+    }
+    const putRes = await fetch(`${API}/contents/config.json`, {
+      method: "PUT",
+      headers: { ...ghHeaders(true), "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Update bot settings via dashboard",
+        content: btoa(unescape(encodeURIComponent(newContent))),
+        sha
+      })
+    });
+    if (!putRes.ok) {
+      const err = await putRes.json().catch(() => ({}));
+      throw new Error(err.message || putRes.statusText);
+    }
+    statusEl.innerHTML = '<div class="status-msg ok">Settings saved. Next post will use them.</div>';
+  } catch (e) {
+    statusEl.innerHTML = `<div class="status-msg err">Couldn't save: ${e.message}</div>`;
+  }
+});
+
+// ---- Manual trigger ----
+document.getElementById("triggerBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("triggerStatus");
+  const token = getToken();
+  if (!token) {
+    statusEl.innerHTML = '<div class="status-msg err">Save your access token above first.</div>';
+    return;
+  }
+  statusEl.innerHTML = '<div class="loading">Triggering workflow...</div>';
+  try {
+    const res = await fetch(`${API}/actions/workflows/${WORKFLOW_FILE}/dispatches`, {
+      method: "POST",
+      headers: { ...ghHeaders(true), "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: "main" })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || res.statusText);
+    }
+    statusEl.innerHTML = '<div class="status-msg ok">Triggered! Check Discord in about 20-30 seconds.</div>';
+    setTimeout(() => { loadHistory(); }, 30000);
+  } catch (e) {
+    statusEl.innerHTML = `<div class="status-msg err">Couldn't trigger: ${e.message}</div>`;
+  }
+});
+
+loadGallery();
+loadHistory();
+loadConfig();
+</script>
+
+</body>
+</html>
