@@ -1,7 +1,7 @@
 const owner = "falllendev";
 const repo = "Cat-bot";
 const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-const roleId = "1524624410185826355";
+const roleId = "1524870577527980232";
 
 async function main() {
   if (!webhookUrl) {
