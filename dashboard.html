@@ -228,7 +228,7 @@
 
   <div class="card">
     <h2>History &amp; stats</h2>
-    <p class="sub">Pulled from <code>history.json</code>, updated after every post.</p>
+    <p class="sub">Pulled from <code>history.json</code> and <code>stats.json</code>, updated after every post.</p>
     <div class="stat-row" id="statRow"><div class="loading">Loading...</div></div>
     <div class="history-list" id="historyList"></div>
   </div>
@@ -297,7 +297,15 @@ async function loadHistory() {
     if (!res.ok) throw new Error("no history yet");
     const history = await res.json();
 
-    const total = history.length;
+    let total = history.length;
+    try {
+      const statsRes = await fetch(`${RAW}/stats.json?cachebust=${Date.now()}`);
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        if (stats.totalPosts) total = stats.totalPosts;
+      }
+    } catch (e) { /* fall back to history.length */ }
+
     const counts = {};
     history.forEach(h => { counts[h.photo] = (counts[h.photo] || 0) + 1; });
     let favPhoto = "-", favCount = 0;
@@ -306,8 +314,8 @@ async function loadHistory() {
     const lastWhen = last ? new Date(last.timestamp).toLocaleString() : "-";
 
     statRow.innerHTML = `
-      <div class="stat"><div class="num">${total}</div><div class="label">Total posts</div></div>
-      <div class="stat"><div class="num">${favCount}</div><div class="label">Most-posted photo</div></div>
+      <div class="stat"><div class="num">${total}</div><div class="label">Total posts (all-time)</div></div>
+      <div class="stat"><div class="num">${favCount}</div><div class="label">Most-posted (recent 200)</div></div>
       <div class="stat"><div class="num" style="font-size:1.1rem">${lastWhen}</div><div class="label">Last posted</div></div>
     `;
 
@@ -347,7 +355,6 @@ document.getElementById("saveConfigBtn").addEventListener("click", async () => {
 
   statusEl.innerHTML = '<div class="loading">Saving...</div>';
   try {
-    // Need the current file's sha to update it
     let sha = undefined;
     const getRes = await fetch(`${API}/contents/config.json`, { headers: ghHeaders(true) });
     if (getRes.ok) {
