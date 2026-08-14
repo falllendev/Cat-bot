@@ -20,6 +20,6 @@ jobs:
         run: |
           git config user.name "cat-bot"
           git config user.email "cat-bot@users.noreply.github.com"
-          git add history.json
+          git add history.json stats.json
           git commit -m "update history" || echo "nothing to commit"
           git push
