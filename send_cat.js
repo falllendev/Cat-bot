@@ -35,11 +35,18 @@ async function main() {
   if (!discordRes.ok) throw new Error(`Discord webhook failed: ${discordRes.status} ${discordRes.statusText}`);
   console.log("Posted:", imageUrl);
 
+  // Recent history (capped at 200)
   let history = [];
   try { history = JSON.parse(fs.readFileSync("history.json", "utf-8")); } catch (e) { history = []; }
   history.unshift({ photo: pick.name, timestamp: new Date().toISOString() });
   history = history.slice(0, 200);
   fs.writeFileSync("history.json", JSON.stringify(history, null, 2));
+
+  // Lifetime stats (never capped)
+  let stats = { totalPosts: 0 };
+  try { stats = JSON.parse(fs.readFileSync("stats.json", "utf-8")); } catch (e) { stats = { totalPosts: 0 }; }
+  stats.totalPosts = (stats.totalPosts || 0) + 1;
+  fs.writeFileSync("stats.json", JSON.stringify(stats, null, 2));
 }
 
 main().catch(err => {
