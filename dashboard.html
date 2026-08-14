@@ -259,7 +259,6 @@ function ghHeaders(withAuth) {
   return h;
 }
 
-// ---- Token ----
 document.getElementById("token").value = getToken();
 document.getElementById("saveTokenBtn").addEventListener("click", () => {
   const val = document.getElementById("token").value.trim();
@@ -268,7 +267,6 @@ document.getElementById("saveTokenBtn").addEventListener("click", () => {
   el.textContent = val ? "Token saved in this browser." : "Token cleared.";
 });
 
-// ---- Gallery ----
 async function loadGallery() {
   const el = document.getElementById("gallery");
   try {
@@ -288,46 +286,7 @@ async function loadGallery() {
   }
 }
 
-// ---- History & stats ----
 async function loadHistory() {
-     const statRow = document.getElementById("statRow");
-     const listEl = document.getElementById("historyList");
-     try {
-       const res = await fetch(`${RAW}/history.json?cachebust=${Date.now()}`);
-       if (!res.ok) throw new Error("no history yet");
-       const history = await res.json();
-
-       let total = history.length;
-       try {
-         const statsRes = await fetch(`${RAW}/stats.json?cachebust=${Date.now()}`);
-         if (statsRes.ok) {
-           const stats = await statsRes.json();
-           if (stats.totalPosts) total = stats.totalPosts;
-         }
-       } catch (e) { /* fall back to history.length */ }
-
-       const counts = {};
-       history.forEach(h => { counts[h.photo] = (counts[h.photo] || 0) + 1; });
-       let favPhoto = "-", favCount = 0;
-       Object.entries(counts).forEach(([name, c]) => { if (c > favCount) { favCount = c; favPhoto = name; } });
-       const last = history[0];
-       const lastWhen = last ? new Date(last.timestamp).toLocaleString() : "-";
-
-       statRow.innerHTML = `
-         <div class="stat"><div class="num">${total}</div><div class="label">Total posts (all-time)</div></div>
-         <div class="stat"><div class="num">${favCount}</div><div class="label">Most-posted (recent 200)</div></div>
-         <div class="stat"><div class="num" style="font-size:1.1rem">${lastWhen}</div><div class="label">Last posted</div></div>
-       `;
-
-       listEl.innerHTML = history.slice(0, 30).map(h => {
-         const when = new Date(h.timestamp).toLocaleString();
-         return `<div class="history-item"><span>${h.photo}</span><span class="when">${when}</span></div>`;
-       }).join("") || '<div class="loading">No posts logged yet.</div>';
-     } catch (e) {
-       statRow.innerHTML = '<div class="loading">No history yet &mdash; it appears after the first post.</div>';
-       listEl.innerHTML = "";
-     }
-   }
   const statRow = document.getElementById("statRow");
   const listEl = document.getElementById("historyList");
   try {
@@ -367,7 +326,6 @@ async function loadHistory() {
   }
 }
 
-// ---- Config ----
 async function loadConfig() {
   try {
     const res = await fetch(`${RAW}/config.json?cachebust=${Date.now()}`);
@@ -418,7 +376,6 @@ document.getElementById("saveConfigBtn").addEventListener("click", async () => {
   }
 });
 
-// ---- Manual trigger ----
 document.getElementById("triggerBtn").addEventListener("click", async () => {
   const statusEl = document.getElementById("triggerStatus");
   const token = getToken();
