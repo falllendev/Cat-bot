@@ -182,6 +182,39 @@
     margin-top: 6px;
   }
   .loading { color: var(--muted); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.9rem; }
+
+  .hour-groups {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  @media (max-width: 640px) {
+    .hour-groups { grid-template-columns: 1fr; }
+  }
+  .hour-group h3 {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  .hour-row {
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .hour-row label {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--ink);
+  }
+  .hour-row input {
+    padding: 7px 10px;
+    font-size: 0.85rem;
+  }
 </style>
 </head>
 <body>
@@ -215,7 +248,7 @@
     <h2>Message settings</h2>
     <p class="sub">Edits <code>config.json</code> in the repo. The next post will use these.</p>
     <div class="field">
-      <label for="roleId">Role ID to ping (leave blank for none)</label>
+      <label for="roleId">Fallback role ID to ping (used if no hourly role is set below)</label>
       <input type="text" id="roleId" placeholder="e.g. 1524870577527980232" />
     </div>
     <div class="field">
@@ -224,6 +257,23 @@
     </div>
     <button class="primary" id="saveConfigBtn">Save settings</button>
     <div id="configStatus"></div>
+  </div>
+
+  <div class="card">
+    <h2>Hourly ping roles</h2>
+    <p class="sub">Each hour (UTC) can ping a different role, so people only get pinged during their chosen time slot. Leave a slot blank to use the fallback role above instead.</p>
+    <div class="hour-groups">
+      <div class="hour-group">
+        <h3>12 AM – 11 AM (UTC)</h3>
+        <div id="hourGroupAM"></div>
+      </div>
+      <div class="hour-group">
+        <h3>12 PM – 11 PM (UTC)</h3>
+        <div id="hourGroupPM"></div>
+      </div>
+    </div>
+    <button class="primary" id="saveHourRolesBtn" style="margin-top:8px;">Save hourly roles</button>
+    <div id="hourRolesStatus"></div>
   </div>
 
   <div class="card">
@@ -259,6 +309,14 @@ function ghHeaders(withAuth) {
   return h;
 }
 
+function hourLabel(h) {
+  if (h === 0) return "12 AM";
+  if (h < 12) return `${h} AM`;
+  if (h === 12) return "12 PM";
+  return `${h - 12} PM`;
+}
+
+// ---- Token ----
 document.getElementById("token").value = getToken();
 document.getElementById("saveTokenBtn").addEventListener("click", () => {
   const val = document.getElementById("token").value.trim();
@@ -267,6 +325,7 @@ document.getElementById("saveTokenBtn").addEventListener("click", () => {
   el.textContent = val ? "Token saved in this browser." : "Token cleared.";
 });
 
+// ---- Gallery ----
 async function loadGallery() {
   const el = document.getElementById("gallery");
   try {
@@ -286,6 +345,7 @@ async function loadGallery() {
   }
 }
 
+// ---- History & stats ----
 async function loadHistory() {
   const statRow = document.getElementById("statRow");
   const listEl = document.getElementById("historyList");
@@ -326,15 +386,47 @@ async function loadHistory() {
   }
 }
 
+// ---- Config (message settings) ----
+async function fetchConfig() {
+  const res = await fetch(`${RAW}/config.json?cachebust=${Date.now()}`);
+  if (!res.ok) throw new Error("no config yet");
+  return await res.json();
+}
+
 async function loadConfig() {
   try {
-    const res = await fetch(`${RAW}/config.json?cachebust=${Date.now()}`);
-    if (!res.ok) throw new Error("no config yet");
-    const cfg = await res.json();
+    const cfg = await fetchConfig();
     document.getElementById("roleId").value = cfg.roleId || "";
     document.getElementById("msgText").value = cfg.message || "";
   } catch (e) {
     document.getElementById("msgText").value = "Hourly cat photo is here";
+  }
+}
+
+async function saveConfigMerged(partial) {
+  // Reads current config, merges in `partial`, writes it back with a fresh sha
+  let current = {};
+  try { current = await fetchConfig(); } catch (e) { current = {}; }
+  const merged = { ...current, ...partial };
+
+  let sha = undefined;
+  const getRes = await fetch(`${API}/contents/config.json`, { headers: ghHeaders(true) });
+  if (getRes.ok) {
+    const data = await getRes.json();
+    sha = data.sha;
+  }
+  const putRes = await fetch(`${API}/contents/config.json`, {
+    method: "PUT",
+    headers: { ...ghHeaders(true), "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: "Update bot settings via dashboard",
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(merged, null, 2)))),
+      sha
+    })
+  });
+  if (!putRes.ok) {
+    const err = await putRes.json().catch(() => ({}));
+    throw new Error(err.message || putRes.statusText);
   }
 }
 
@@ -347,35 +439,69 @@ document.getElementById("saveConfigBtn").addEventListener("click", async () => {
   }
   const roleId = document.getElementById("roleId").value.trim();
   const message = document.getElementById("msgText").value.trim() || "Hourly cat photo is here";
-  const newContent = JSON.stringify({ roleId, message }, null, 2);
 
   statusEl.innerHTML = '<div class="loading">Saving...</div>';
   try {
-    let sha = undefined;
-    const getRes = await fetch(`${API}/contents/config.json`, { headers: ghHeaders(true) });
-    if (getRes.ok) {
-      const data = await getRes.json();
-      sha = data.sha;
-    }
-    const putRes = await fetch(`${API}/contents/config.json`, {
-      method: "PUT",
-      headers: { ...ghHeaders(true), "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: "Update bot settings via dashboard",
-        content: btoa(unescape(encodeURIComponent(newContent))),
-        sha
-      })
-    });
-    if (!putRes.ok) {
-      const err = await putRes.json().catch(() => ({}));
-      throw new Error(err.message || putRes.statusText);
-    }
+    await saveConfigMerged({ roleId, message });
     statusEl.innerHTML = '<div class="status-msg ok">Settings saved. Next post will use them.</div>';
   } catch (e) {
     statusEl.innerHTML = `<div class="status-msg err">Couldn't save: ${e.message}</div>`;
   }
 });
 
+// ---- Hourly ping roles ----
+function buildHourInputs() {
+  const am = document.getElementById("hourGroupAM");
+  const pm = document.getElementById("hourGroupPM");
+  let amHtml = "";
+  let pmHtml = "";
+  for (let h = 0; h < 24; h++) {
+    const row = `
+      <div class="hour-row">
+        <label for="hour-${h}">${hourLabel(h)}</label>
+        <input type="text" id="hour-${h}" placeholder="role ID (optional)" />
+      </div>`;
+    if (h < 12) amHtml += row; else pmHtml += row;
+  }
+  am.innerHTML = amHtml;
+  pm.innerHTML = pmHtml;
+}
+
+async function loadHourRoles() {
+  buildHourInputs();
+  try {
+    const cfg = await fetchConfig();
+    const hourRoles = cfg.hourRoles || {};
+    for (let h = 0; h < 24; h++) {
+      const el = document.getElementById(`hour-${h}`);
+      if (el && hourRoles[h.toString()]) el.value = hourRoles[h.toString()];
+    }
+  } catch (e) { /* nothing saved yet, inputs stay blank */ }
+}
+
+document.getElementById("saveHourRolesBtn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("hourRolesStatus");
+  const token = getToken();
+  if (!token) {
+    statusEl.innerHTML = '<div class="status-msg err">Save your access token above first.</div>';
+    return;
+  }
+  const hourRoles = {};
+  for (let h = 0; h < 24; h++) {
+    const val = document.getElementById(`hour-${h}`).value.trim();
+    if (val) hourRoles[h.toString()] = val;
+  }
+
+  statusEl.innerHTML = '<div class="loading">Saving...</div>';
+  try {
+    await saveConfigMerged({ hourRoles });
+    statusEl.innerHTML = '<div class="status-msg ok">Hourly roles saved.</div>';
+  } catch (e) {
+    statusEl.innerHTML = `<div class="status-msg err">Couldn't save: ${e.message}</div>`;
+  }
+});
+
+// ---- Manual trigger ----
 document.getElementById("triggerBtn").addEventListener("click", async () => {
   const statusEl = document.getElementById("triggerStatus");
   const token = getToken();
@@ -404,6 +530,7 @@ document.getElementById("triggerBtn").addEventListener("click", async () => {
 loadGallery();
 loadHistory();
 loadConfig();
+loadHourRoles();
 </script>
 
 </body>
