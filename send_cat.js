@@ -20,8 +20,13 @@ async function main() {
   const pick = images[Math.floor(Math.random() * images.length)];
   const imageUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/${encodeURIComponent(pick.name)}`;
 
-  const content = config.roleId
-    ? `<@&${config.roleId}> ${config.message}\n${imageUrl}`
+  // Pick the role for the current UTC hour, falling back to the general roleId if none is set
+  const currentUtcHour = new Date().getUTCHours().toString();
+  const hourRoles = config.hourRoles || {};
+  const roleToUse = hourRoles[currentUtcHour] || config.roleId || null;
+
+  const content = roleToUse
+    ? `<@&${roleToUse}> ${config.message}\n${imageUrl}`
     : `${config.message}\n${imageUrl}`;
 
   const discordRes = await fetch(webhookUrl, {
@@ -29,20 +34,18 @@ async function main() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       content,
-      allowed_mentions: config.roleId ? { roles: [config.roleId] } : { parse: [] }
+      allowed_mentions: roleToUse ? { roles: [roleToUse] } : { parse: [] }
     })
   });
   if (!discordRes.ok) throw new Error(`Discord webhook failed: ${discordRes.status} ${discordRes.statusText}`);
-  console.log("Posted:", imageUrl);
+  console.log("Posted:", imageUrl, "| Role used:", roleToUse || "none");
 
-  // Recent history (capped at 200)
   let history = [];
   try { history = JSON.parse(fs.readFileSync("history.json", "utf-8")); } catch (e) { history = []; }
   history.unshift({ photo: pick.name, timestamp: new Date().toISOString() });
   history = history.slice(0, 200);
   fs.writeFileSync("history.json", JSON.stringify(history, null, 2));
 
-  // Lifetime stats (never capped)
   let stats = { totalPosts: 0 };
   try { stats = JSON.parse(fs.readFileSync("stats.json", "utf-8")); } catch (e) { stats = { totalPosts: 0 }; }
   stats.totalPosts = (stats.totalPosts || 0) + 1;
