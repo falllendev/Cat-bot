@@ -404,17 +404,18 @@ async function loadConfig() {
 }
 
 async function saveConfigMerged(partial) {
-  // Reads current config, merges in `partial`, writes it back with a fresh sha
+  // Reads current config AND sha from the same live API call (never the cached
+  // raw.githubusercontent.com copy) so a merge can never be based on stale data.
   let current = {};
-  try { current = await fetchConfig(); } catch (e) { current = {}; }
-  const merged = { ...current, ...partial };
-
   let sha = undefined;
   const getRes = await fetch(`${API}/contents/config.json`, { headers: ghHeaders(true) });
   if (getRes.ok) {
     const data = await getRes.json();
     sha = data.sha;
+    try { current = JSON.parse(decodeURIComponent(escape(atob(data.content)))); } catch (e) { current = {}; }
   }
+  const merged = { ...current, ...partial };
+
   const putRes = await fetch(`${API}/contents/config.json`, {
     method: "PUT",
     headers: { ...ghHeaders(true), "Content-Type": "application/json" },
