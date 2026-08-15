@@ -1,5 +1,9 @@
 [
   {
+    "photo": "IMG_0822.jpeg",
+    "timestamp": "2026-08-15T22:00:36.066Z"
+  },
+  {
     "photo": "IMG_0192.jpeg",
     "timestamp": "2026-08-15T21:00:33.374Z"
   },
@@ -794,9 +798,5 @@
   {
     "photo": "IMG_4316.jpeg",
     "timestamp": "2026-08-07T17:00:28.576Z"
-  },
-  {
-    "photo": "IMG_0368.jpeg",
-    "timestamp": "2026-08-07T16:00:26.968Z"
   }
 ]
